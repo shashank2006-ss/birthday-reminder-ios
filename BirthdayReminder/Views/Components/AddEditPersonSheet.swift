@@ -14,6 +14,7 @@ public struct AddEditPersonSheet: View {
     @State private var phoneNumber: String
     @State private var customMessage: String
     @State private var errorMessage: String? = nil
+    @State private var showingContactPicker: Bool = false
 
     private let templates: [(label: String, text: String)] = [
         ("🎉 Classic", "Happy Birthday! Wishing you a fantastic day filled with joy, health, and success! 🎉🎂"),
@@ -55,7 +56,26 @@ public struct AddEditPersonSheet: View {
         NavigationStack {
             Form {
                 Section(header: Text("Contact Info")) {
-                    TextField("Full Name", text: $name)
+                    HStack {
+                        TextField("Full Name", text: $name)
+                        if socialPlatform != .telegram {
+                            Button(action: { showingContactPicker = true }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "person.crop.circle.badge.plus")
+                                        .font(.subheadline)
+                                    Text("Contacts")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.accentColor.opacity(0.12))
+                                .foregroundColor(.accentColor)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                        }
+                    }
 
                     Picker("Platform", selection: $socialPlatform) {
                         ForEach(SocialPlatform.allCases) { platform in
@@ -64,11 +84,21 @@ public struct AddEditPersonSheet: View {
                         }
                     }
 
-                    TextField(
-                        socialPlatform == .telegram ? "Telegram Username (e.g. @john)" : "Phone Number (with Country Code)",
-                        text: $phoneNumber
-                    )
-                    .keyboardType(socialPlatform == .telegram ? .default : .phonePad)
+                    HStack {
+                        TextField(
+                            socialPlatform == .telegram ? "Telegram Username (e.g. @john)" : "Phone Number (with Country Code)",
+                            text: $phoneNumber
+                        )
+                        .keyboardType(socialPlatform == .telegram ? .default : .phonePad)
+
+                        if socialPlatform != .telegram {
+                            Button(action: { showingContactPicker = true }) {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(.accentColor)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                        }
+                    }
                 }
 
                 Section(header: Text("Birthday Date")) {
@@ -131,6 +161,33 @@ public struct AddEditPersonSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
                 }
+            }
+            .sheet(isPresented: $showingContactPicker) {
+                ContactPickerView(
+                    onSelectContact: { pickedName, pickedPhone, pickedBirthday in
+                        showingContactPicker = false
+                        if !pickedName.isEmpty {
+                            name = pickedName
+                        }
+                        if !pickedPhone.isEmpty {
+                            phoneNumber = pickedPhone
+                        }
+                        if let bday = pickedBirthday, let month = bday.month, let day = bday.day {
+                            var comp = DateComponents()
+                            comp.month = month
+                            comp.day = day
+                            comp.year = bday.year ?? Calendar.current.component(.year, from: Date())
+                            if let bDate = Calendar.current.date(from: comp) {
+                                birthdayDate = bDate
+                                if bday.year != nil {
+                                    includesBirthYear = true
+                                    birthYear = bday.year
+                                }
+                            }
+                        }
+                    },
+                    onDismiss: { showingContactPicker = false }
+                )
             }
         }
     }

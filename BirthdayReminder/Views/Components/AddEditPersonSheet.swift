@@ -120,12 +120,74 @@ public struct AddEditPersonSheet: View {
                 }
 
                 Section(header: Text("Reminder & Send Time")) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            Button(action: {
+                                var comp = DateComponents()
+                                comp.hour = 0
+                                comp.minute = 0
+                                reminderTime = Calendar.current.date(from: comp) ?? reminderTime
+                            }) {
+                                Text("🌙 Midnight (12:00 AM)")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(isMidnight ? Color.purple.opacity(0.2) : Color(.systemGray5))
+                                    .foregroundColor(isMidnight ? .purple : .primary)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+
+                            Button(action: {
+                                var comp = DateComponents()
+                                comp.hour = 9
+                                comp.minute = 0
+                                reminderTime = Calendar.current.date(from: comp) ?? reminderTime
+                            }) {
+                                Text("🌅 Morning (9:00 AM)")
+                                    .font(.caption)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color(.systemGray5))
+                                    .foregroundColor(.primary)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+
+                            Button(action: {
+                                var comp = DateComponents()
+                                comp.hour = 12
+                                comp.minute = 0
+                                reminderTime = Calendar.current.date(from: comp) ?? reminderTime
+                            }) {
+                                Text("☀️ Noon (12:00 PM)")
+                                    .font(.caption)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color(.systemGray5))
+                                    .foregroundColor(.primary)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                        }
+                    }
+
                     DatePicker(
-                        "Exact Notification Time",
+                        "Exact Time",
                         selection: $reminderTime,
                         displayedComponents: .hourAndMinute
                     )
                     .datePickerStyle(.compact)
+
+                    HStack(spacing: 6) {
+                        Image(systemName: timeDescriptionIcon)
+                            .foregroundColor(timeDescriptionColor)
+                        Text(timeDescriptionText)
+                            .font(.caption)
+                            .fontWeight(isMidnight ? .semibold : .regular)
+                            .foregroundColor(timeDescriptionColor)
+                    }
                 }
 
                 Section(header: Text("Personalized Birthday Wish")) {
@@ -234,5 +296,41 @@ public struct AddEditPersonSheet: View {
         personToSave.customMessage = trimmedMsg
 
         onSave(personToSave)
+    }
+
+    private var reminderHourComponent: Int {
+        Calendar.current.component(.hour, from: reminderTime)
+    }
+
+    private var isMidnight: Bool {
+        reminderHourComponent == 0 && Calendar.current.component(.minute, from: reminderTime) == 0
+    }
+
+    private var timeDescriptionText: String {
+        let hour = reminderHourComponent
+        if hour == 0 {
+            return "🌙 12:00 AM Midnight — Fires right at 12:00 when the date changes!"
+        } else if hour == 12 {
+            return "☀️ 12:00 PM Noon — Midday / Lunchtime"
+        } else if hour < 12 {
+            return "🌅 Morning reminder"
+        } else {
+            return "🌆 Afternoon / Evening reminder"
+        }
+    }
+
+    private var timeDescriptionIcon: String {
+        let hour = reminderHourComponent
+        if hour == 0 { return "moon.stars.fill" }
+        else if hour == 12 { return "sun.max.fill" }
+        else if hour < 12 { return "sunrise.fill" }
+        else { return "sunset.fill" }
+    }
+
+    private var timeDescriptionColor: Color {
+        let hour = reminderHourComponent
+        if hour == 0 { return .purple }
+        else if hour == 12 { return .orange }
+        else { return .secondary }
     }
 }

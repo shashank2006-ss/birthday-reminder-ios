@@ -58,7 +58,7 @@ public struct AddEditPersonSheet: View {
                 Section(header: Text("Contact Info")) {
                     HStack {
                         TextField("Full Name", text: $name)
-                        if socialPlatform != .telegram {
+                        if socialPlatform != .instagram {
                             Button(action: { showingContactPicker = true }) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "person.crop.circle.badge.plus")
@@ -85,13 +85,21 @@ public struct AddEditPersonSheet: View {
                     }
 
                     HStack {
-                        TextField(
-                            socialPlatform == .telegram ? "Telegram Username (e.g. @john)" : "Phone Number (with Country Code)",
-                            text: $phoneNumber
-                        )
-                        .keyboardType(socialPlatform == .telegram ? .default : .phonePad)
+                        let placeholderText: String = {
+                            switch socialPlatform {
+                            case .whatsapp, .sms:
+                                return "Phone Number (with Country Code)"
+                            case .telegram:
+                                return "Telegram Handle (@username) or Phone"
+                            case .instagram:
+                                return "Instagram Handle (@username)"
+                            }
+                        }()
 
-                        if socialPlatform != .telegram {
+                        TextField(placeholderText, text: $phoneNumber)
+                            .keyboardType(socialPlatform == .whatsapp || socialPlatform == .sms ? .phonePad : .default)
+
+                        if socialPlatform != .instagram {
                             Button(action: { showingContactPicker = true }) {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundColor(.accentColor)

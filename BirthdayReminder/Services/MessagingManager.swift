@@ -23,6 +23,29 @@ public class MessagingManager {
             openSMS(phone: phoneOrHandle, message: message, completion: completion)
         case .telegram:
             openTelegram(recipient: phoneOrHandle, message: message, completion: completion)
+        case .instagram:
+            openInstagram(handle: phoneOrHandle, message: message, completion: completion)
+        }
+    }
+
+    /// Opens Instagram DM chat with handle, copying message to clipboard
+    public func openInstagram(handle: String, message: String, completion: ((Bool) -> Void)? = nil) {
+        let cleanedHandle = handle.replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        UIPasteboard.general.string = message
+
+        let appUrlString = "instagram://user?username=\(cleanedHandle)"
+        let webUrlString = "https://ig.me/m/\(cleanedHandle)"
+
+        if let appUrl = URL(string: appUrlString), UIApplication.shared.canOpenURL(appUrl) {
+            UIApplication.shared.open(appUrl, options: [:]) { success in
+                completion?(success)
+            }
+        } else if let webUrl = URL(string: webUrlString) {
+            UIApplication.shared.open(webUrl, options: [:]) { success in
+                completion?(success)
+            }
+        } else {
+            completion?(false)
         }
     }
 

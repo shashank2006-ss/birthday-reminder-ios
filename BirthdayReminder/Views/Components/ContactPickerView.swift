@@ -1,52 +1,60 @@
 import SwiftUI
 import ContactsUI
 
-public struct ContactPickerView: UIViewControllerRepresentable {
-    public var onSelectContact: (String, String, DateComponents?) -> Void
-    public var onDismiss: () -> Void
+public class ContactPickerLauncher: NSObject, CNContactPickerDelegate {
+    public static let shared = ContactPickerLauncher()
 
-    public init(
-        onSelectContact: @escaping (String, String, DateComponents?) -> Void,
-        onDismiss: @escaping () -> Void = {}
-    ) {
-        self.onSelectContact = onSelectContact
-        self.onDismiss = onDismiss
+    private var onSelect: ((String, String, DateComponents?) -> Void)?
+
+    private override init() {
+        super.init()
     }
 
-    public func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+    public func present(onSelect: @escaping (String, String, DateComponents?) -> Void) {
+        self.onSelect = onSelect
+
+        DispatchQueue.main.async {
+            guard let topVC = Self.getTopViewController() else { return }
+            let picker = CNContactPickerViewController()
+            picker.delegate = self
+            picker.displayedPropertyKeys = [
+                CNContactGivenNameKey,
+                CNContactFamilyNameKey,
+                CNContactPhoneNumbersKey,
+                CNContactBirthdayKey
+            ]
+            topVC.present(picker, animated: true)
+        }
     }
 
-    public func makeUIViewController(context: Context) -> CNContactPickerViewController {
-        let picker = CNContactPickerViewController()
-        picker.delegate = context.coordinator
-        picker.displayedPropertyKeys = [
-            CNContactGivenNameKey,
-            CNContactFamilyNameKey,
-            CNContactPhoneNumbersKey,
-            CNContactBirthdayKey
-        ]
-        return picker
+    public func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
+        let fullName = [contact.givenName, contact.familyName].filter { !$0.isEmpty }.joined(separator: " ")
+        let phone = contact.phoneNumbers.first?.value.stringValue ?? ""
+        let birthday = contact.birthday
+
+        onSelect?(fullName, phone, birthday)
+        onSelect = nil
     }
 
-    public func updateUIViewController(_ uiViewController: CNContactPickerViewController, context: Context) {}
+    public func contactPickerDidCancel(_ picker: CNContactPickerViewController) {
+        onSelect = nil
+    }
 
-    public class Coordinator: NSObject, CNContactPickerDelegate {
-        var parent: ContactPickerView
+    private static func getTopViewController(base: UIViewController? = nil) -> UIViewController? {
+        let root: UIViewController? = base ?? {
+            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+            return scenes.flatMap { $0.windows }.first { $0.isKeyWindow }?.rootViewController
+        }()
 
-        init(_ parent: ContactPickerView) {
-            self.parent = parent
+        if let nav = root as? UINavigationController {
+            return getTopViewController(base: nav.visibleViewController)
         }
-
-        public func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
-            let fullName = [contact.givenName, contact.familyName].filter { !$0.isEmpty }.joined(separator: " ")
-            let phone = contact.phoneNumbers.first?.value.stringValue ?? ""
-            let birthday = contact.birthday
-            parent.onSelectContact(fullName, phone, birthday)
+        if let tab = root as? UITabBarController {
+            return getTopViewController(base: tab.selectedViewController)
         }
-
-        public func contactPickerDidCancel(_ picker: CNContactPickerViewController) {
-            parent.onDismiss()
+        if let presented = root?.presentedViewController {
+            return getTopViewController(base: presented)
         }
+        return root
     }
 }

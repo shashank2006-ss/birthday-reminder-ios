@@ -14,7 +14,6 @@ public struct AddEditPersonSheet: View {
     @State private var phoneNumber: String
     @State private var customMessage: String
     @State private var errorMessage: String? = nil
-    @State private var showingContactPicker: Bool = false
 
     private let templates: [(label: String, text: String)] = [
         ("🎉 Classic", "Happy Birthday! Wishing you a fantastic day filled with joy, health, and success! 🎉🎂"),
@@ -59,7 +58,7 @@ public struct AddEditPersonSheet: View {
                     HStack {
                         TextField("Full Name", text: $name)
                         if socialPlatform != .instagram {
-                            Button(action: { showingContactPicker = true }) {
+                            Button(action: pickContact) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "person.crop.circle.badge.plus")
                                         .font(.subheadline)
@@ -100,7 +99,7 @@ public struct AddEditPersonSheet: View {
                             .keyboardType(socialPlatform == .whatsapp || socialPlatform == .sms ? .phonePad : .default)
 
                         if socialPlatform != .instagram {
-                            Button(action: { showingContactPicker = true }) {
+                            Button(action: pickContact) {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundColor(.accentColor)
                             }
@@ -170,32 +169,29 @@ public struct AddEditPersonSheet: View {
                     Button("Save", action: save)
                 }
             }
-            .sheet(isPresented: $showingContactPicker) {
-                ContactPickerView(
-                    onSelectContact: { pickedName, pickedPhone, pickedBirthday in
-                        showingContactPicker = false
-                        if !pickedName.isEmpty {
-                            name = pickedName
-                        }
-                        if !pickedPhone.isEmpty {
-                            phoneNumber = pickedPhone
-                        }
-                        if let bday = pickedBirthday, let month = bday.month, let day = bday.day {
-                            var comp = DateComponents()
-                            comp.month = month
-                            comp.day = day
-                            comp.year = bday.year ?? Calendar.current.component(.year, from: Date())
-                            if let bDate = Calendar.current.date(from: comp) {
-                                birthdayDate = bDate
-                                if bday.year != nil {
-                                    includesBirthYear = true
-                                    birthYear = bday.year
-                                }
-                            }
-                        }
-                    },
-                    onDismiss: { showingContactPicker = false }
-                )
+        }
+    }
+
+    private func pickContact() {
+        ContactPickerLauncher.shared.present { pickedName, pickedPhone, pickedBirthday in
+            if !pickedName.isEmpty {
+                name = pickedName
+            }
+            if !pickedPhone.isEmpty {
+                phoneNumber = pickedPhone
+            }
+            if let bday = pickedBirthday, let month = bday.month, let day = bday.day {
+                var comp = DateComponents()
+                comp.month = month
+                comp.day = day
+                comp.year = bday.year ?? Calendar.current.component(.year, from: Date())
+                if let bDate = Calendar.current.date(from: comp) {
+                    birthdayDate = bDate
+                    if bday.year != nil {
+                        includesBirthYear = true
+                        birthYear = bday.year
+                    }
+                }
             }
         }
     }

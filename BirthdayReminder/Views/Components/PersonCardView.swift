@@ -7,6 +7,8 @@ public struct PersonCardView: View {
     public let onDelete: () -> Void
     public let onToggleEnabled: () -> Void
 
+    @State private var showingDeleteAlert = false
+
     public init(
         person: Person,
         onSend: @escaping () -> Void,
@@ -27,6 +29,7 @@ public struct PersonCardView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header Row: Avatar, Name, Age, Days Remaining
+            // Tapping header safely opens Edit
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
@@ -77,6 +80,10 @@ public struct PersonCardView: View {
                     .foregroundColor(countdownTextColor)
                     .clipShape(Capsule())
             }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onEdit()
+            }
 
             // Tags Row: Reminder Time & Social Platform
             HStack(spacing: 8) {
@@ -109,7 +116,7 @@ public struct PersonCardView: View {
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(8)
 
-            // Action Row
+            // Action Row: Each button has BorderlessButtonStyle to isolate touch events in List
             HStack {
                 Button(action: onSend) {
                     HStack(spacing: 6) {
@@ -125,7 +132,7 @@ public struct PersonCardView: View {
                     .background(person.socialPlatform.themeColor)
                     .cornerRadius(10)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(BorderlessButtonStyle())
 
                 Spacer()
 
@@ -134,18 +141,21 @@ public struct PersonCardView: View {
                         .foregroundColor(person.isEnabled ? .accentColor : .gray)
                         .padding(8)
                 }
+                .buttonStyle(BorderlessButtonStyle())
 
                 Button(action: onEdit) {
                     Image(systemName: "pencil")
                         .foregroundColor(.secondary)
                         .padding(8)
                 }
+                .buttonStyle(BorderlessButtonStyle())
 
-                Button(action: onDelete) {
+                Button(action: { showingDeleteAlert = true }) {
                     Image(systemName: "trash")
                         .foregroundColor(.red.opacity(0.8))
                         .padding(8)
                 }
+                .buttonStyle(BorderlessButtonStyle())
             }
         }
         .padding(14)
@@ -158,6 +168,14 @@ public struct PersonCardView: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isToday ? Color.accentColor.opacity(0.3) : Color(.systemGray5), lineWidth: 1)
         )
+        .alert("Delete Reminder", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+        } message: {
+            Text("Are you sure you want to remove \(person.name) from birthday reminders?")
+        }
     }
 
     private var countdownLabel: String {
